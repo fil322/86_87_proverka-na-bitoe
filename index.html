@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверка на битое</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;600;700;800&family=PT+Sans:wght@400;700&family=PT+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#EEF3F2;
+    --surface:#FFFFFF;
+    --surface-2:#E3EAE8;
+    --surface-3:#D3DDDA;
+    --border:#C6D0CD;
+    --text:#132220;
+    --text-dim:#556360;
+    --accent:#0E7C86;
+    --accent-soft:#D9EEEF;
+    --good:#2F8F5B;
+    --good-soft:#E1F3E8;
+    --bad:#B23B30;
+    --bad-soft:#F9E3E0;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#101617;
+      --surface:#181F21;
+      --surface-2:#1F2729;
+      --surface-3:#283133;
+      --border:#313B3D;
+      --text:#E7EDEC;
+      --text-dim:#93A19E;
+      --accent:#4FD3D9;
+      --accent-soft:#1B3336;
+      --good:#5FCB8C;
+      --good-soft:#17301F;
+      --bad:#E2726A;
+      --bad-soft:#33201D;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#101617;
+    --surface:#181F21;
+    --surface-2:#1F2729;
+    --surface-3:#283133;
+    --border:#313B3D;
+    --text:#E7EDEC;
+    --text-dim:#93A19E;
+    --accent:#4FD3D9;
+    --accent-soft:#1B3336;
+    --good:#5FCB8C;
+    --good-soft:#17301F;
+    --bad:#E2726A;
+    --bad-soft:#33201D;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'PT Sans', -apple-system, 'Segoe UI', Arial, sans-serif;
+    line-height:1.5;
+    font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:'Golos Text', 'PT Sans', sans-serif;
+    color:var(--text);
+    margin:0;
+  }
+  .num, .tally, .verdict-title, .rule-tag{
+    font-family:'PT Mono', 'SF Mono', Consolas, monospace;
+  }
+
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:28px 16px 140px;
+  }
+
+  header{
+    padding-bottom:20px;
+    margin-bottom:20px;
+    border-bottom:1px solid var(--border);
+    position:relative;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    left:0; bottom:-1px;
+    width:64px; height:3px;
+    background:var(--accent);
+  }
+  .eyebrow{
+    font-family:'PT Mono', monospace;
+    font-size:12px;
+    letter-spacing:.04em;
+    color:var(--accent);
+    margin:0 0 10px;
+  }
+  header h1{
+    font-size:28px;
+    font-weight:800;
+    text-wrap:balance;
+    margin-bottom:10px;
+  }
+  header .lede{
+    color:var(--text-dim);
+    font-size:14.5px;
+    max-width:58ch;
+    margin:0;
+  }
+
+  .tabs{
+    display:flex;
+    gap:6px;
+    background:var(--surface-2);
+    padding:5px;
+    border-radius:12px;
+    margin-bottom:18px;
+  }
+  .tab{
+    flex:1;
+    border:none;
+    background:transparent;
+    color:var(--text-dim);
+    font-family:'Golos Text', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    padding:10px 8px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab:hover{color:var(--text);}
+  .tab.active{
+    background:var(--surface);
+    color:var(--text);
+    box-shadow:0 1px 3px rgba(0,0,0,.12);
+  }
+  .tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .rule{
+    background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius:var(--radius);
+    padding:13px 16px;
+    font-size:13.8px;
+    color:var(--text);
+    margin:0 0 20px;
+  }
+  .rule .rule-tag{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    color:var(--accent);
+    margin-right:6px;
+  }
+
+  .criteria{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .criterion{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    display:flex;
+    gap:14px;
+  }
+  .crit-num{
+    flex:none;
+    font-size:12px;
+    font-weight:700;
+    color:var(--text-dim);
+    padding-top:3px;
+  }
+  .crit-body{flex:1; min-width:0;}
+  .crit-title{
+    font-family:'Golos Text', sans-serif;
+    font-weight:700;
+    font-size:14.5px;
+    margin:0 0 10px;
+  }
+  .hardfail-tag{
+    display:inline-block;
+    margin-left:8px;
+    font-family:'PT Mono', monospace;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:var(--bad);
+    background:var(--bad-soft);
+    border:1px solid var(--bad);
+    border-radius:999px;
+    padding:2px 8px;
+    vertical-align:middle;
+  }
+  .crit-options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  @media (max-width:480px){
+    .crit-options{grid-template-columns:1fr;}
+  }
+  .opt{
+    text-align:left;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    border-radius:10px;
+    padding:10px 12px;
+    cursor:pointer;
+    font-family:'PT Sans', sans-serif;
+    color:var(--text);
+    transition:border-color .12s ease, background .12s ease, transform .08s ease;
+  }
+  .opt:hover{border-color:var(--text-dim);}
+  .opt:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .opt:active{transform:scale(.99);}
+  .opt .opt-label{
+    display:block;
+    font-family:'PT Mono', monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.03em;
+    margin-bottom:4px;
+  }
+  .opt.against .opt-label{color:var(--bad);}
+  .opt.for .opt-label{color:var(--good);}
+  .opt .opt-desc{
+    display:block;
+    font-size:12.8px;
+    color:var(--text-dim);
+    line-height:1.35;
+  }
+  .opt.selected.against{
+    background:var(--bad-soft);
+    border-color:var(--bad);
+  }
+  .opt.selected.for{
+    background:var(--good-soft);
+    border-color:var(--good);
+  }
+  .opt.selected .opt-desc{color:var(--text);}
+
+  footer.note{
+    margin-top:26px;
+    font-size:12.5px;
+    color:var(--text-dim);
+    border-top:1px solid var(--border);
+    padding-top:16px;
+  }
+
+  .verdict-bar{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    box-shadow:0 -4px 16px rgba(0,0,0,.08);
+    transition:background .2s ease;
+  }
+  .verdict-bar.verdict-good{background:var(--good-soft);}
+  .verdict-bar.verdict-bad{background:var(--bad-soft);}
+
+  .verdict-info{flex:1; min-width:0;}
+  .tally{
+    font-size:12.5px;
+    color:var(--text-dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .verdict-title{
+    font-size:16.5px;
+    font-weight:700;
+    margin:0;
+    display:none;
+  }
+  .verdict-bar.verdict-good .verdict-title{display:block; color:var(--good);}
+  .verdict-bar.verdict-bad .verdict-title{display:block; color:var(--bad);}
+  .verdict-bar.verdict-good .tally,
+  .verdict-bar.verdict-bad .tally{display:none;}
+
+  .reset{
+    flex:none;
+    border:1.5px solid var(--border);
+    background:transparent;
+    color:var(--text-dim);
+    font-family:'Golos Text', sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:9px 14px;
+    border-radius:9px;
+    cursor:pointer;
+  }
+  .reset:hover{border-color:var(--text-dim); color:var(--text);}
+  .reset:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Инструмент проверки - заявки 86 / 87</p>
+    <h1>Проверка на битое</h1>
+    <p class="lede">Отвечайте на вопросы чек-листа по спорному видео - вердикт считается сам. Чек-листы взяты из ТЗ от 16.09.2026. Это помощник, а не замена ТЗ - если в TagMe появились новые примеры или формулировки, ориентируйтесь на них.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tabbtn-pixel" data-tab="pixel" role="tab" aria-selected="true">Пикселизация и полосы</button>
+    <button class="tab" id="tabbtn-block" data-tab="block" role="tab" aria-selected="false">Блочность</button>
+  </div>
+
+  <section class="panel" id="panel-pixel" role="tabpanel">
+    <p class="rule"><span class="rule-tag">ПРАВИЛО</span>Оцените все 5 критериев. Если по большинству ответов "против" - отправляйте в битое. Если по большинству "за" - принимайте видео.</p>
+    <ol class="criteria" id="list-pixel"></ol>
+  </section>
+
+  <section class="panel" id="panel-block" role="tabpanel" hidden>
+    <p class="rule"><span class="rule-tag">ПРАВИЛО</span>Если блочность на главном объекте (ГО) или на предмете, с которым ГО взаимодействует - сразу битое, дальше можно не проверять. Если нет: 3 из 5 против - не берем, 1-2 против - берем. Размер блоков значения не имеет, важны заметность и расположение.</p>
+    <ol class="criteria" id="list-block"></ol>
+  </section>
+
+  <footer class="note">Полное описание каждого артефакта с примерами - в ТЗ на TagMe. Если пример из обратной связи не понятен, пишите менеджеру проекта, не додумывайте сами.</footer>
+</div>
+
+<div class="verdict-bar" id="verdictBar">
+  <div class="verdict-info">
+    <p class="tally" id="tally">Против: 0 · За: 0 · Осталось: 5</p>
+    <p class="verdict-title" id="verdictTitle"></p>
+  </div>
+  <button class="reset" id="resetBtn" type="button">Сбросить</button>
+</div>
+
+<script>
+(function(){
+  var DATA = {
+    pixel: [
+      { title: "Степень критичности",
+        against: "Дефект крупный, занимает значительную часть кадра, бросается в глаза сразу",
+        forText: "Дефект мелкий, заметен только при внимательном разглядывании" },
+      { title: "Расположение",
+        against: "Дефект на главном объекте (ГО) или важной части композиции",
+        forText: "Дефект на второстепенном участке, не мешает главному объекту" },
+      { title: "Процент площади кадра",
+        against: "Дефект занимает более 20% площади кадра",
+        forText: "Дефект занимает менее 20% площади кадра" },
+      { title: "Контрастность",
+        against: "Дефект выделяется ярким контрастом - яркие полосы, пятна",
+        forText: "Дефект сливается с близкими оттенками" },
+      { title: "Интенсивность",
+        against: "Дефект активен на всем видео, сильно заметен",
+        forText: "Дефект слабый, слегка мерцает, почти незаметен" }
+    ],
+    block: [
+      { title: "Расположение блоков", hardFail: true,
+        against: "На главном объекте (ГО) или на предмете, с которым ГО взаимодействует",
+        forText: "По углам, на второстепенном фоне - не на ГО и не рядом с ним" },
+      { title: "Контрастность блоков",
+        against: "Блоки контрастные по тону или цвету",
+        forText: "Блоки ближайших оттенков, сливаются с фоном" },
+      { title: "Площадь",
+        against: "Больше 5% кадра",
+        forText: "Меньше 5% кадра" },
+      { title: "Продолжительность",
+        against: "Держится на протяжении всего видео",
+        forText: "Появляется и пропадает" },
+      { title: "Заметность",
+        against: "Заметны сразу, без паузы",
+        forText: "Видно только если поставить видео на паузу" }
+    ]
+  };
+
+  var THRESHOLD = { pixel: 3, block: 3 };
+  var HARDFAIL = { block: 0 };
+  var TOTAL = 5;
+
+  var state = {
+    pixel: [null,null,null,null,null],
+    block: [null,null,null,null,null]
+  };
+
+  var activeTab = 'pixel';
+
+  var listEls = {
+    pixel: document.getElementById('list-pixel'),
+    block: document.getElementById('list-block')
+  };
+
+  function buildList(key){
+    var frag = document.createDocumentFragment();
+    DATA[key].forEach(function(item, i){
+      var li = document.createElement('li');
+      li.className = 'criterion';
+
+      var num = document.createElement('div');
+      num.className = 'crit-num';
+      num.textContent = String(i+1).padStart(2,'0');
+      li.appendChild(num);
+
+      var body = document.createElement('div');
+      body.className = 'crit-body';
+
+      var title = document.createElement('p');
+      title.className = 'crit-title';
+      title.textContent = item.title;
+      if (item.hardFail){
+        var hf = document.createElement('span');
+        hf.className = 'hardfail-tag';
+        hf.textContent = 'против = сразу битое';
+        title.appendChild(hf);
+      }
+      body.appendChild(title);
+
+      var opts = document.createElement('div');
+      opts.className = 'crit-options';
+
+      var btnAgainst = document.createElement('button');
+      btnAgainst.type = 'button';
+      btnAgainst.className = 'opt against';
+      btnAgainst.id = key + '-q' + i + '-against';
+      btnAgainst.innerHTML = '<span class="opt-label">против</span><span class="opt-desc"></span>';
+      btnAgainst.querySelector('.opt-desc').textContent = item.against;
+      btnAgainst.addEventListener('click', function(){ select(key, i, 'against'); });
+
+      var btnFor = document.createElement('button');
+      btnFor.type = 'button';
+      btnFor.className = 'opt for';
+      btnFor.id = key + '-q' + i + '-for';
+      btnFor.innerHTML = '<span class="opt-label">за</span><span class="opt-desc"></span>';
+      btnFor.querySelector('.opt-desc').textContent = item.forText;
+      btnFor.addEventListener('click', function(){ select(key, i, 'for'); });
+
+      opts.appendChild(btnAgainst);
+      opts.appendChild(btnFor);
+      body.appendChild(opts);
+      li.appendChild(body);
+      frag.appendChild(li);
+    });
+    listEls[key].appendChild(frag);
+  }
+
+  function select(key, i, choice){
+    state[key][i] = state[key][i] === choice ? null : choice;
+    renderPanel(key);
+    if (key === activeTab) updateBar();
+  }
+
+  function renderPanel(key){
+    DATA[key].forEach(function(item, i){
+      var a = document.getElementById(key + '-q' + i + '-against');
+      var f = document.getElementById(key + '-q' + i + '-for');
+      a.classList.toggle('selected', state[key][i] === 'against');
+      f.classList.toggle('selected', state[key][i] === 'for');
+    });
+  }
+
+  function counts(key){
+    var against = 0, forC = 0;
+    state[key].forEach(function(v){
+      if (v === 'against') against++;
+      if (v === 'for') forC++;
+    });
+    return { against: against, forC: forC, answered: against + forC };
+  }
+
+  var bar = document.getElementById('verdictBar');
+  var tallyEl = document.getElementById('tally');
+  var verdictTitleEl = document.getElementById('verdictTitle');
+
+  function updateBar(){
+    var c = counts(activeTab);
+    bar.classList.remove('verdict-good', 'verdict-bad');
+
+    var hfIndex = HARDFAIL[activeTab];
+    if (hfIndex !== undefined && state[activeTab][hfIndex] === 'against'){
+      bar.classList.add('verdict-bad');
+      verdictTitleEl.textContent = 'БИТОЕ - автоматический отказ (блочность на главном объекте)';
+      return;
+    }
+
+    if (c.answered < TOTAL){
+      tallyEl.textContent = 'Против: ' + c.against + ' · За: ' + c.forC + ' · Осталось: ' + (TOTAL - c.answered);
+      verdictTitleEl.textContent = '';
+    } else if (c.against >= THRESHOLD[activeTab]){
+      bar.classList.add('verdict-bad');
+      verdictTitleEl.textContent = 'БИТОЕ - не берем (' + c.against + ' из 5 против)';
+    } else {
+      bar.classList.add('verdict-good');
+      verdictTitleEl.textContent = 'ПОДХОДИТ - берем (' + c.forC + ' из 5 за)';
+    }
+  }
+
+  var tabButtons = document.querySelectorAll('.tab');
+  var panels = { pixel: document.getElementById('panel-pixel'), block: document.getElementById('panel-block') };
+
+  tabButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.getAttribute('data-tab');
+      if (key === activeTab) return;
+      activeTab = key;
+      tabButtons.forEach(function(b){
+        var on = b.getAttribute('data-tab') === key;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      Object.keys(panels).forEach(function(k){
+        panels[k].hidden = (k !== key);
+      });
+      updateBar();
+    });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    state[activeTab] = [null,null,null,null,null];
+    renderPanel(activeTab);
+    updateBar();
+  });
+
+  buildList('pixel');
+  buildList('block');
+  updateBar();
+})();
+</script>
+</body>
+</html>
