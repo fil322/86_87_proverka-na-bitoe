@@ -323,12 +323,13 @@
   <header>
     <p class="eyebrow">Инструмент проверки - заявки 86 / 87</p>
     <h1>Проверка на битое</h1>
-    <p class="lede">Отвечайте на вопросы чек-листа по спорному видео - вердикт считается сам. Чек-листы взяты из ТЗ от 16.09.2026. Это помощник, а не замена ТЗ - если в TagMe появились новые примеры или формулировки, ориентируйтесь на них.</p>
+    <p class="lede">Отвечайте на вопросы чек-листа по спорному видео - вердикт считается сам. Чек-листы взяты из ТЗ от 23.09.2026. Это помощник, а не замена ТЗ - если в TagMe появились новые примеры или формулировки, ориентируйтесь на них.</p>
   </header>
 
   <div class="tabs" role="tablist">
     <button class="tab active" id="tabbtn-pixel" data-tab="pixel" role="tab" aria-selected="true">Пикселизация и полосы</button>
     <button class="tab" id="tabbtn-block" data-tab="block" role="tab" aria-selected="false">Блочность</button>
+    <button class="tab" id="tabbtn-app" data-tab="app" role="tab" aria-selected="false">Передний план</button>
   </div>
 
   <section class="panel" id="panel-pixel" role="tabpanel">
@@ -339,6 +340,11 @@
   <section class="panel" id="panel-block" role="tabpanel" hidden>
     <p class="rule"><span class="rule-tag">ПРАВИЛО</span>Если блочность на главном объекте (ГО) или на предмете, с которым ГО взаимодействует - сразу битое, дальше можно не проверять. Если нет: 3 из 5 против - не берем, 1-2 против - берем. Размер блоков значения не имеет, важны заметность и расположение.</p>
     <ol class="criteria" id="list-block"></ol>
+  </section>
+
+  <section class="panel" id="panel-app" role="tabpanel" hidden>
+    <p class="rule"><span class="rule-tag">ПРАВИЛО</span>Сразу битое, если объекты переднего плана стали полностью прозрачными. Если объект занимает 1-2% кадра и не портит картинку - за. Иначе по 6 вопросам: 4 и больше против - не берем. 3 на 3 (ощущение 50 на 50) - по ТЗ решаем в лучшую сторону, берем.</p>
+    <ol class="criteria" id="list-app"></ol>
   </section>
 
   <footer class="note">Полное описание каждого артефакта с примерами - в ТЗ на TagMe. Если пример из обратной связи не понятен, пишите менеджеру проекта, не додумывайте сами.</footer>
@@ -386,25 +392,43 @@
         against: "Держится на протяжении всего видео",
         forText: "Появляется и пропадает" },
       { title: "Заметность",
-        against: "Заметны сразу, без паузы",
-        forText: "Видно только если поставить видео на паузу" }
+        against: "Заметны сразу",
+        forText: "Увидели не сразу" }
+    ],
+    app: [
+      { title: "Главный объект",
+        against: "Перекрывает главный объект или значимую его часть",
+        forText: "Не перекрывает главный объект" },
+      { title: "Читаемость",
+        against: "Непонятно, что это за объект",
+        forText: "Понятно, что это за объект" },
+      { title: "Детали",
+        against: "Похож на абстракцию: плоско, без деталей и объема",
+        forText: "Сохранена текстура, читаются детали и объем, несмотря на расфокус" },
+      { title: "Площадь",
+        against: "Больше 5% кадра",
+        forText: "5% кадра или меньше и не перекрывает главный объект" },
+      { title: "Контур",
+        against: "Контур в десятки раз толще, чем у объектов в фокусе, превратился в толстую прозрачную полосу",
+        forText: "Контур обычной толщины" },
+      { title: "Время в кадре",
+        against: "Размытый объект в кадре дольше 1-2 секунд",
+        forText: "1-2 секунды или меньше" }
     ]
   };
 
-  var THRESHOLD = { pixel: 3, block: 3 };
+  var THRESHOLD = { pixel: 3, block: 3, app: 4 };
   var HARDFAIL = { block: 0 };
-  var TOTAL = 5;
 
-  var state = {
-    pixel: [null,null,null,null,null],
-    block: [null,null,null,null,null]
-  };
+  function emptyState(key){ return DATA[key].map(function(){ return null; }); }
+  var state = { pixel: emptyState('pixel'), block: emptyState('block'), app: emptyState('app') };
 
   var activeTab = 'pixel';
 
   var listEls = {
     pixel: document.getElementById('list-pixel'),
-    block: document.getElementById('list-block')
+    block: document.getElementById('list-block'),
+    app: document.getElementById('list-app')
   };
 
   function buildList(key){
@@ -490,6 +514,7 @@
 
   function updateBar(){
     var c = counts(activeTab);
+    var TOTAL = DATA[activeTab].length;
     bar.classList.remove('verdict-good', 'verdict-bad');
 
     var hfIndex = HARDFAIL[activeTab];
@@ -504,15 +529,15 @@
       verdictTitleEl.textContent = '';
     } else if (c.against >= THRESHOLD[activeTab]){
       bar.classList.add('verdict-bad');
-      verdictTitleEl.textContent = 'БИТОЕ - не берем (' + c.against + ' из 5 против)';
+      verdictTitleEl.textContent = 'БИТОЕ - не берем (' + c.against + ' из ' + TOTAL + ' против)';
     } else {
       bar.classList.add('verdict-good');
-      verdictTitleEl.textContent = 'ПОДХОДИТ - берем (' + c.forC + ' из 5 за)';
+      verdictTitleEl.textContent = 'ПОДХОДИТ - берем (' + c.forC + ' из ' + TOTAL + ' за)';
     }
   }
 
   var tabButtons = document.querySelectorAll('.tab');
-  var panels = { pixel: document.getElementById('panel-pixel'), block: document.getElementById('panel-block') };
+  var panels = { pixel: document.getElementById('panel-pixel'), block: document.getElementById('panel-block'), app: document.getElementById('panel-app') };
 
   tabButtons.forEach(function(btn){
     btn.addEventListener('click', function(){
@@ -532,13 +557,14 @@
   });
 
   document.getElementById('resetBtn').addEventListener('click', function(){
-    state[activeTab] = [null,null,null,null,null];
+    state[activeTab] = emptyState(activeTab);
     renderPanel(activeTab);
     updateBar();
   });
 
   buildList('pixel');
   buildList('block');
+  buildList('app');
   updateBar();
 })();
 </script>
