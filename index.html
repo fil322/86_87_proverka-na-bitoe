@@ -323,7 +323,7 @@
   <header>
     <p class="eyebrow">Инструмент проверки - заявки 86 / 87</p>
     <h1>Проверка на битое</h1>
-    <p class="lede">Отвечайте на вопросы чек-листа по спорному видео - вердикт считается сам. Чек-листы взяты из ТЗ от 23.09.2026. Это помощник, а не замена ТЗ - если в TagMe появились новые примеры или формулировки, ориентируйтесь на них.</p>
+    <p class="lede">Отвечайте на вопросы чек-листа по спорному видео - вердикт считается сам. Чек-листы взяты из ТЗ от 28.09.2026. Это помощник, а не замена ТЗ - если в TagMe появились новые примеры или формулировки, ориентируйтесь на них.</p>
   </header>
 
   <div class="tabs" role="tablist">
@@ -338,7 +338,8 @@
   </section>
 
   <section class="panel" id="panel-block" role="tabpanel" hidden>
-    <p class="rule"><span class="rule-tag">ПРАВИЛО</span>Если блочность на главном объекте (ГО) или на предмете, с которым ГО взаимодействует - сразу битое, дальше можно не проверять. Если нет: 3 из 5 против - не берем, 1-2 против - берем. Размер блоков значения не имеет, важны заметность и расположение.</p>
+    <p class="rule"><span class="rule-tag">ПРАВИЛО</span>Если блоки на главном объекте (ГО) или на предмете, с которым ГО взаимодействует, дольше 20% времени видео - сразу битое. Если на ГО блоки не больше 20% времени - по ТЗ это можно пропустить (правило 20/80), дальше проверяем по 5 пунктам: 3 из 5 против - не берем, 1-2 против - берем. Размер блоков значения не имеет.</p>
+    <p class="rule"><span class="rule-tag">ГДЕ СМОТРЕТЬ НА 0,25</span>Однотонные предметы и стены, небо, вода, одежда (особенно черная и красная), глиняные поверхности, шерсть, градиенты и тени, кожа. Проверяйте эти участки в нескольких местах видео по 5-10 секунд - все видео на 0,25 смотреть не нужно. Если видео состоит из совсем разных отрезков (например, съемка с дрона), при сомнениях проверьте каждый отрезок.</p>
     <ol class="criteria" id="list-block"></ol>
   </section>
 
@@ -379,9 +380,12 @@
         forText: "Дефект слабый, слегка мерцает, почти незаметен" }
     ],
     block: [
-      { title: "Расположение блоков", hardFail: true,
-        against: "На главном объекте (ГО) или на предмете, с которым ГО взаимодействует",
-        forText: "По углам, на второстепенном фоне - не на ГО и не рядом с ним" },
+      { title: "Блоки на главном объекте", gate: true,
+        against: "На ГО или рядом с ним дольше 20% времени видео",
+        forText: "На ГО блоков нет или они не дольше 20% времени видео" },
+      { title: "Расположение блоков",
+        against: "По центру кадра",
+        forText: "По углам" },
       { title: "Контрастность блоков",
         against: "Блоки контрастные по тону или цвету",
         forText: "Блоки ближайших оттенков, сливаются с фоном" },
@@ -418,7 +422,6 @@
   };
 
   var THRESHOLD = { pixel: 3, block: 3, app: 4 };
-  var HARDFAIL = { block: 0 };
 
   function emptyState(key){ return DATA[key].map(function(){ return null; }); }
   var state = { pixel: emptyState('pixel'), block: emptyState('block'), app: emptyState('app') };
@@ -448,10 +451,10 @@
       var title = document.createElement('p');
       title.className = 'crit-title';
       title.textContent = item.title;
-      if (item.hardFail){
+      if (item.gate){
         var hf = document.createElement('span');
         hf.className = 'hardfail-tag';
-        hf.textContent = 'против = сразу битое';
+        hf.textContent = 'против = сразу битое, в подсчет не входит';
         title.appendChild(hf);
       }
       body.appendChild(title);
@@ -501,11 +504,15 @@
 
   function counts(key){
     var against = 0, forC = 0;
-    state[key].forEach(function(v){
+    var answered = 0, total = 0;
+    state[key].forEach(function(v, i){
+      if (v !== null) answered++;
+      if (DATA[key][i].gate) return;
+      total++;
       if (v === 'against') against++;
       if (v === 'for') forC++;
     });
-    return { against: against, forC: forC, answered: against + forC };
+    return { against: against, forC: forC, answered: answered, total: total, items: DATA[key].length };
   }
 
   var bar = document.getElementById('verdictBar');
@@ -514,18 +521,18 @@
 
   function updateBar(){
     var c = counts(activeTab);
-    var TOTAL = DATA[activeTab].length;
+    var TOTAL = c.total;
     bar.classList.remove('verdict-good', 'verdict-bad');
 
-    var hfIndex = HARDFAIL[activeTab];
-    if (hfIndex !== undefined && state[activeTab][hfIndex] === 'against'){
+    var gateFail = DATA[activeTab].some(function(item, i){ return item.gate && state[activeTab][i] === 'against'; });
+    if (gateFail){
       bar.classList.add('verdict-bad');
-      verdictTitleEl.textContent = 'БИТОЕ - автоматический отказ (блочность на главном объекте)';
+      verdictTitleEl.textContent = 'БИТОЕ - блоки на главном объекте дольше 20% видео';
       return;
     }
 
-    if (c.answered < TOTAL){
-      tallyEl.textContent = 'Против: ' + c.against + ' · За: ' + c.forC + ' · Осталось: ' + (TOTAL - c.answered);
+    if (c.answered < c.items){
+      tallyEl.textContent = 'Против: ' + c.against + ' · За: ' + c.forC + ' · Осталось: ' + (c.items - c.answered);
       verdictTitleEl.textContent = '';
     } else if (c.against >= THRESHOLD[activeTab]){
       bar.classList.add('verdict-bad');
